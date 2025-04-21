@@ -1,0 +1,15 @@
+{
+  "name": "screenshot-bot",
+  "version": "1.0.0",
+  "description": "A simple Puppeteer script to take full-page screenshots from a list of URLs.",
+  "main": "screenshot.js",
+  "scripts": {
+    "start": "node screenshot.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^21.3.8"
+  },
+  "keywords": []
+}
