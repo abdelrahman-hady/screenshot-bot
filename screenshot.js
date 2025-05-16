@@ -85,6 +85,6 @@ const autoScroll = async (page) => {
 
     await browser.close();
   } catch (err) {
-    console.error(`Error capturing ${url}:`, err.message);
+    console.error(`Error capturing:`, err.message);
   }
 })();
