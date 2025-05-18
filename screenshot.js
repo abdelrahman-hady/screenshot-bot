@@ -31,6 +31,8 @@ const autoScroll = async (page) => {
 
 (async () => {
   try {
+    console.log('Starging...');
+
     const browser = await puppeteer.launch({
       headless: "new",  // <-- Add this option
       args: [
@@ -50,17 +52,25 @@ const autoScroll = async (page) => {
       fs.mkdirSync(screenshotDir);
     }
 
-    for (let url of urls) {
-      console.log(`Capturing: ${url}`);
+    let popupsHandled = false;
 
-      // Set Amasty cookie for current domain
-      // This is needed to remove the cookie settings modal
+    for (let url of urls) {
+      // Parse the URL to get the domain for cookies
       const urlObj = new URL(url);
-      await page.setCookie({
-        name: 'amcookie_allowed',
-        value: '0',
-        domain: urlObj.hostname
-      });
+      
+      // Set the required cookies for the domain
+      await page.setCookie(
+        {
+          name: 'customer-type-popup-set',
+          value: '1',
+          domain: urlObj.hostname
+        },
+        {
+          name: 'store-switcher-first-load',
+          value: 'true',
+          domain: urlObj.hostname
+        }
+      );
 
       await page.goto(url, {
         waitUntil: 'domcontentloaded',
@@ -70,15 +80,44 @@ const autoScroll = async (page) => {
       await autoScroll(page);
       await new Promise(resolve => setTimeout(resolve, 5000)); // Stabilization period
 
-      // Set Amasty cookie acceptance timestamp to localStorage
-      // This is needed to remove the cookie settings modal
-      await page.evaluate(() => {
-        localStorage.setItem('am-last-cookie-acceptance', '1733216227');
-      });
+      // Check for Usercentrics cookie consent dialog and click accept button
+      try {
+        if (!popupsHandled) {
+          // Step 1: Handle Usercentrics consent
+          const consentHandled = await page.evaluate(() => {
+            const usercentricsElement = document.querySelector('#usercentrics-cmp-ui');
+            if (usercentricsElement) {
+              if (usercentricsElement.shadowRoot) {
+                const acceptButton = usercentricsElement.shadowRoot.querySelector('button#accept.uc-accept-button');
+                if (acceptButton) {
+                  acceptButton.click();
+                  return 'Usercentrics accept button clicked';
+                }
+              }
+            }
+            return false;
+          });
+
+          if (consentHandled) {
+            console.log(`Cookie consent handled: ${consentHandled}`);
+            // Wait for any animations to complete
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          } else {
+            console.log('No cookie consent dialog detected or could not be handled');
+          }
+
+          // Mark popups as handled so we don't repeat for other URLs
+          popupsHandled = true;
+        }
+      } catch (err) {
+        console.error('Error handling popups:', err.message);
+      }
 
       // Safe filename generation
       const filename = url.replace(/https?:\/\//, '').replace(/[^a-zA-Z0-9]/g, '_');
       const filepath = path.join(screenshotDir, `${filename}.png`);
+
+      console.log(`Capturing: ${url}`);
 
       await page.screenshot({ path: filepath, fullPage: true });
     }
