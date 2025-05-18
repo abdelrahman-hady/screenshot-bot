@@ -9,7 +9,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "puppeteer": "^21.3.8"
+    "puppeteer": "^24.8.2"
   },
   "keywords": []
 }
